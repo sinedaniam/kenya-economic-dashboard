@@ -1,0 +1,206 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Kenya Economic Dashboard</title>
+<meta name="description" content="Kenya's macroeconomic performance and regional position, built from World Bank data by Denis Mburu.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/plotly.js-dist-min@2.35.2/plotly.min.js"></script>
+<style>
+  :root {
+    --navy: #0b2a4a; --navy-2: #123a63; --blue: #2f6fed; --green: #1f9d6b; --red: #d64545;
+    --bg: #eef3f9; --card: #ffffff; --border: #dde5ef; --text: #13253a; --muted: #5c6f84;
+    --c1: #2f6fed; --c2: #1f9d6b; --c3: #f2a33a; --c4: #8b5cf6; --c5: #e2557b;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--text); font: 14px/1.45 Inter, system-ui, sans-serif; }
+  header { background: linear-gradient(90deg, var(--navy), var(--navy-2)); color: #fff; padding: 18px 24px;
+           display: flex; justify-content: space-between; align-items: center; gap: 16px; flex-wrap: wrap; }
+  header h1 { margin: 0; font-size: 24px; font-weight: 700; letter-spacing: -0.01em; }
+  header .tag { opacity: .8; font-size: 13px; margin-top: 4px; }
+  header .tag span + span::before { content: "  |  "; opacity: .6; white-space: pre; }
+  header .right { text-align: right; font-size: 13px; }
+  header .right b { display: block; font-size: 14px; }
+  header .right div { opacity: .75; }
+  .layout { display: grid; grid-template-columns: 190px 1fr; min-height: calc(100vh - 120px); }
+  nav { background: var(--navy); padding: 16px 10px; }
+  nav a { display: block; color: #c9d6e6; text-decoration: none; padding: 9px 12px; border-radius: 6px; font-size: 13px; margin-bottom: 2px; }
+  nav a:hover { background: rgba(255,255,255,.08); color: #fff; }
+  nav a.active { background: var(--blue); color: #fff; font-weight: 600; }
+  main { padding: 18px; display: grid; gap: 14px; grid-template-columns: repeat(12, 1fr); align-content: start; }
+  .card { background: var(--card); border: 1px solid var(--border); border-radius: 10px; padding: 14px 16px; min-width: 0; }
+  .card h2 { margin: 0 0 8px; font-size: 14px; font-weight: 600; }
+  .card h2 small { font-weight: 400; color: var(--muted); }
+  .kpi { grid-column: span 3; display: flex; gap: 12px; align-items: flex-start; }
+  .kpi .icon { width: 38px; height: 38px; border-radius: 9px; background: #e7efff; color: var(--blue);
+               display: grid; place-items: center; flex: none; }
+  .kpi .label { color: var(--muted); font-size: 12.5px; font-weight: 500; }
+  .kpi .value { font-size: 26px; font-weight: 700; margin: 2px 0; letter-spacing: -0.02em; }
+  .kpi .delta { font-size: 12px; font-weight: 600; }
+  .kpi .delta.up { color: var(--green); } .kpi .delta.down { color: var(--red); } .kpi .delta.flat { color: var(--muted); }
+  .kpi .delta span { color: var(--muted); font-weight: 400; }
+  .span-8 { grid-column: span 8; } .span-4 { grid-column: span 4; } .span-6 { grid-column: span 6; }
+  .chart { width: 100%; height: 280px; }
+  .chart.short { height: 250px; }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  th { text-align: left; background: #f1f5fa; color: var(--muted); font-weight: 600; padding: 8px; }
+  td { padding: 8px; border-top: 1px solid var(--border); }
+  td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
+  tr.hl td { background: #f0f6ff; font-weight: 600; }
+  .panel ul { margin: 0; padding-left: 18px; } .panel li { margin-bottom: 7px; }
+  .panel.insights { background: #f1faf5; border-color: #cfeadb; }
+  .panel.policy { background: #f2f6ff; border-color: #d4e0fb; }
+  section.anchor { scroll-margin-top: 10px; }
+  .method { grid-column: span 12; color: var(--muted); font-size: 13px; }
+  .method a { color: var(--blue); }
+  footer { background: var(--navy); color: #c9d6e6; text-align: center; padding: 10px; font-size: 12px; }
+  @media (max-width: 1100px) {
+    .kpi { grid-column: span 6; } .span-8, .span-4, .span-6 { grid-column: span 12; }
+  }
+  @media (max-width: 760px) {
+    .layout { grid-template-columns: 1fr; }
+    nav { display: flex; overflow-x: auto; gap: 4px; padding: 8px 16px; }
+    nav a { white-space: nowrap; margin: 0; }
+    main { padding: 12px 16px; }
+    .kpi { grid-column: span 12; }
+    header .right { text-align: left; }
+  }
+</style>
+</head>
+<body>
+<header>
+  <div>
+    <h1>Kenya Economic Dashboard</h1>
+    <div class="tag"><span>Growth</span><span>Prices</span><span>Structure</span><span>Regional position</span></div>
+  </div>
+  <div class="right"><b>Economic Analysis Project</b><div>Python · World Bank WDI · Plotly</div></div>
+</header>
+<div class="layout">
+  <nav>
+    <a href="#overview" class="active">Overview</a>
+    <a href="#trends">Growth &amp; Prices</a>
+    <a href="#structure">Economic Structure</a>
+    <a href="#regional">Regional Comparison</a>
+    <a href="#africa">Africa Map</a>
+    <a href="#method">Data &amp; Method</a>
+  </nav>
+  <main>
+    <section id="overview" class="anchor" style="display:contents"></section>
+    <div id="kpis" style="display:contents"></div>
+
+    <div class="card span-8 anchor" id="trends"><h2>Real GDP Growth and Inflation <small>(annual %)</small></h2><div id="trend" class="chart"></div></div>
+    <div class="card span-4 anchor" id="structure"><h2>GDP by Sector <small>(% of GDP)</small></h2><div id="sectors" class="chart"></div></div>
+
+    <div class="card span-4 anchor" id="regional"><h2>GDP Growth, EAC <small>(%)</small></h2><div id="eacGrowth" class="chart short"></div></div>
+    <div class="card span-4"><h2>Largest EAC Economies <small>(GDP, US$ bn)</small></h2><div id="eacGdp" class="chart short"></div></div>
+    <div class="card span-4"><h2>Top 5 EAC by GDP per Capita</h2><div id="eacTable"></div></div>
+
+    <div class="card span-6 anchor" id="africa"><h2>GDP Growth Across Africa <small>(latest year, %)</small></h2><div id="map" class="chart"></div></div>
+    <div class="card span-3 panel insights" style="grid-column: span 3"><h2>Key Insights</h2><ul id="insights"></ul></div>
+    <div class="card span-3 panel policy" style="grid-column: span 3"><h2>Policy Considerations</h2><ul id="policy"></ul></div>
+
+    <div class="card method anchor" id="method">
+      <h2>Data &amp; Method</h2>
+      Data: <a href="https://data.worldbank.org/">World Bank World Development Indicators</a>, pulled through the WDI API by
+      <code>src/build_data.py</code>. Insights are generated from the data, so they update when the dataset is rebuilt.
+      EAC = Kenya, Tanzania, Uganda, Rwanda, Burundi, South Sudan, DR Congo, Somalia. Sector shares are value added; the
+      remainder is net taxes on products. Data last refreshed <span id="updated"></span>.
+      Source code: <a href="https://github.com/sinedaniam/kenya-economic-dashboard">github.com/sinedaniam/kenya-economic-dashboard</a>.
+    </div>
+  </main>
+</div>
+<footer>Turning data into evidence for policy · Denis Mburu, Economist &amp; Statistician</footer>
+
+<script>
+const ICONS = [
+  '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3v18h18"/><path d="M7 15l4-4 3 3 5-6"/></svg>',
+  '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 19V5"/><path d="M5 12l7-7 7 7"/></svg>',
+  '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="9" cy="9" r="6"/><path d="M15.5 10.5a6 6 0 1 1-5 5"/></svg>',
+  '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 4-6 8-6s8 2 8 6"/></svg>',
+];
+const FONT = { family: "Inter, system-ui, sans-serif", size: 12, color: "#13253a" };
+const CONFIG = { displayModeBar: false, responsive: true };
+const base = (extra = {}) => ({ font: FONT, margin: { l: 40, r: 10, t: 10, b: 40 }, paper_bgcolor: "rgba(0,0,0,0)",
+  plot_bgcolor: "rgba(0,0,0,0)", ...extra });
+const fmt = (v, d = 1) => v.toLocaleString("en-US", { minimumFractionDigits: d, maximumFractionDigits: d });
+
+function renderKpis(kpis) {
+  // For inflation, a fall is good news, so it gets the green colour.
+  const goodWhenDown = new Set(["Inflation (CPI)"]);
+  document.getElementById("kpis").innerHTML = kpis.map((k, i) => {
+    const value = k.unit === "bn" ? `$${fmt(k.value)} bn` : k.unit === "US$" ? `$${fmt(k.value, 0)}` : `${fmt(k.value)}%`;
+    let cls = "flat", arrow = "■", text = "unchanged";
+    if (k.delta !== null && Math.abs(k.delta) >= 0.05) {
+      const up = k.delta > 0, good = goodWhenDown.has(k.label) ? !up : up;
+      cls = good ? "up" : "down"; arrow = up ? "▲" : "▼";
+      text = `${fmt(Math.abs(k.delta))}${k.delta_unit === "pp" ? " pp" : "%"}`;
+    }
+    return `<div class="card kpi"><div class="icon">${ICONS[i]}</div><div>
+      <div class="label">${k.label} · ${k.year}</div><div class="value">${value}</div>
+      <div class="delta ${cls}">${arrow} ${text} <span>vs. ${k.year - 1}</span></div></div></div>`;
+  }).join("");
+}
+
+function render(d) {
+  renderKpis(d.kpis);
+
+  const band = { type: "rect", xref: "paper", x0: 0, x1: 1, y0: 2.5, y1: 7.5, fillcolor: "#1f9d6b", opacity: 0.07, line: { width: 0 } };
+  Plotly.newPlot("trend", [
+    { x: d.trend.growth.years, y: d.trend.growth.values, name: "Real GDP growth", mode: "lines+markers",
+      line: { color: "#2f6fed", width: 2.5 }, marker: { size: 5 } },
+    { x: d.trend.inflation.years, y: d.trend.inflation.values, name: "Inflation", mode: "lines+markers",
+      line: { color: "#1f9d6b", width: 2.5 }, marker: { size: 5 } },
+  ], base({ shapes: [band], legend: { orientation: "h", y: -0.18 }, yaxis: { gridcolor: "#e8eef5", ticksuffix: "%" },
+    annotations: [{ xref: "paper", x: 0.01, y: 7.5, text: "CBK inflation target band", showarrow: false, yanchor: "bottom",
+      font: { size: 10, color: "#1f9d6b" }, xanchor: "left" }], hovermode: "x unified" }), CONFIG);
+
+  const s = Object.entries(d.sectors);
+  Plotly.newPlot("sectors", [{ type: "pie", hole: 0.6, labels: s.map(x => x[0]), values: s.map(x => x[1]), sort: false,
+    marker: { colors: ["#2f6fed", "#1f9d6b", "#f2a33a", "#b8c4d3"] }, textinfo: "percent", hovertemplate: "%{label}: %{value}%<extra></extra>" }],
+    base({ margin: { l: 10, r: 10, t: 10, b: 10 }, legend: { orientation: "h", y: -0.05 },
+      annotations: [{ text: `<b>$${fmt(d.kpis[0].value, 0)}bn</b><br><span style="font-size:11px">GDP ${d.kpis[0].year}</span>`,
+        showarrow: false, font: { size: 16 } }] }), CONFIG);
+
+  const colorFor = (names, base) => names.map(n => n === "Kenya" ? "#d64545" : base);
+  Plotly.newPlot("eacGrowth", [{ type: "bar", x: d.eac_growth.countries, y: d.eac_growth.values,
+    marker: { color: colorFor(d.eac_growth.countries, "#2f6fed") }, text: d.eac_growth.values.map(v => v + "%"),
+    textposition: "outside", cliponaxis: false, hovertemplate: "%{x}: %{y}%<extra></extra>" }],
+    base({ margin: { l: 30, r: 10, t: 20, b: 60 }, yaxis: { gridcolor: "#e8eef5", ticksuffix: "%" }, xaxis: { tickangle: -30 } }), CONFIG);
+
+  const g = d.eac_gdp;
+  Plotly.newPlot("eacGdp", [{ type: "bar", orientation: "h", y: g.countries.slice(0, 6).reverse(), x: g.values.slice(0, 6).reverse(),
+    marker: { color: colorFor(g.countries.slice(0, 6).reverse(), "#8b5cf6") }, text: g.values.slice(0, 6).reverse().map(v => "$" + v + "bn"),
+    textposition: "outside", cliponaxis: false, hovertemplate: "%{y}: $%{x}bn<extra></extra>" }],
+    base({ margin: { l: 80, r: 50, t: 10, b: 30 }, xaxis: { gridcolor: "#e8eef5" } }), CONFIG);
+
+  document.getElementById("eacTable").innerHTML = `<table><thead><tr><th>Country</th><th class="num">GDP pc (US$)</th>
+    <th class="num">Growth</th><th class="num">Inflation</th></tr></thead><tbody>${d.eac_table.map(r =>
+    `<tr class="${r.country === "Kenya" ? "hl" : ""}"><td>${r.country}</td><td class="num">${r.gdp_pc.toLocaleString()}</td>
+     <td class="num">${fmt(r.growth)}%</td><td class="num">${r.inflation === null ? "–" : fmt(r.inflation) + "%"}</td></tr>`).join("")}
+    </tbody></table>`;
+
+  const m = d.africa_map;
+  Plotly.newPlot("map", [{ type: "choropleth", locations: m.iso3, z: m.values, text: m.country, zmid: 0,
+    zmin: -5, zmax: 10, colorscale: [[0, "#d64545"], [0.333, "#f4f1ec"], [0.55, "#8fb5f5"], [0.8, "#2f6fed"], [1, "#0b2a4a"]],
+    marker: { line: { color: "#ffffff", width: 0.5 } }, colorbar: { ticksuffix: "%", thickness: 10, len: 0.8 },
+    hovertemplate: "%{text}: %{z}%<extra></extra>" }],
+    base({ margin: { l: 0, r: 0, t: 0, b: 0 }, geo: { scope: "africa", showframe: false, showcoastlines: false,
+      bgcolor: "rgba(0,0,0,0)", projection: { type: "mercator" }, lakecolor: "#eef3f9", showlakes: true } }), CONFIG);
+
+  document.getElementById("insights").innerHTML = d.insights.map(x => `<li>${x}</li>`).join("");
+  document.getElementById("policy").innerHTML = d.considerations.map(x => `<li>${x}</li>`).join("");
+  document.getElementById("updated").textContent = d.updated;
+}
+
+// Highlight the nav item for the section in view.
+const links = [...document.querySelectorAll("nav a")];
+links.forEach(a => a.addEventListener("click", () => { links.forEach(l => l.classList.remove("active")); a.classList.add("active"); }));
+
+fetch("data.json").then(r => r.json()).then(render)
+  .catch(() => document.querySelector("main").insertAdjacentHTML("afterbegin",
+    '<div class="card" style="grid-column:span 12">Could not load data.json. Serve this folder over HTTP (e.g. <code>python -m http.server</code>).</div>'));
+</script>
+</body>
+</html>
